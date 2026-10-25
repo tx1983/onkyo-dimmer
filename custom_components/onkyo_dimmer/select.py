@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 ONKYO_DOMAIN = "onkyo"
 WATCH_INTERVAL = 10
 
-# Ïðîâåðåíî íà VSX-LX505: 00-03 ïîääåðæèâàþòñÿ, 08 äà¸ò N/A
+# ÐŸÑ€Ð¾Ð²ÐµÑ€ÐµÐ½Ð¾ Ð½Ð° VSX-LX505: 00-03 Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶Ð¸Ð²Ð°ÑŽÑ‚ÑÑ, 08 Ð´Ð°Ñ‘Ñ‚ N/A
 CODE_TO_NAME = {
     "00": "bright",
     "01": "dim",
@@ -21,7 +21,7 @@ NAME_TO_CODE = {v: k for k, v in CODE_TO_NAME.items()}
 
 
 class DimInstruction:
-    """Èíñòðóêöèÿ DIM â ôîðìàòå, êîòîðûé ïîíèìàåò ReceiverManager.write()."""
+    """Ð˜Ð½ÑÑ‚Ñ€ÑƒÐºÑ†Ð¸Ñ DIM Ð² Ñ„Ð¾Ñ€Ð¼Ð°Ñ‚Ðµ, ÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ð¹ Ð¿Ð¾Ð½Ð¸Ð¼Ð°ÐµÑ‚ ReceiverManager.write()."""
 
     def __init__(self, parameter: bytes) -> None:
         self.raw_code = b"DIM"
@@ -65,7 +65,7 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
             self._task.cancel()
         self._unregister()
 
-    # --- ñâÿçü ñ ìåíåäæåðîì ðîäíîé èíòåãðàöèè ---
+    # --- ÑÐ²ÑÐ·ÑŒ Ñ Ð¼ÐµÐ½ÐµÐ´Ð¶ÐµÑ€Ð¾Ð¼ Ñ€Ð¾Ð´Ð½Ð¾Ð¹ Ð¸Ð½Ñ‚ÐµÐ³Ñ€Ð°Ñ†Ð¸Ð¸ ---
 
     def _get_manager(self):
         for entry in self.hass.config_entries.async_entries(ONKYO_DOMAIN):
@@ -75,7 +75,7 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
         return None
 
     async def _watch(self) -> None:
-        """Ñëåäèì çà ìåíåäæåðîì (îí ïåðåñîçäà¸òñÿ ïðè ïåðåçàãðóçêå èíòåãðàöèè)."""
+        """Ð¡Ð»ÐµÐ´Ð¸Ð¼ Ð·Ð° Ð¼ÐµÐ½ÐµÐ´Ð¶ÐµÑ€Ð¾Ð¼ (Ð¾Ð½ Ð¿ÐµÑ€ÐµÑÐ¾Ð·Ð´Ð°Ñ‘Ñ‚ÑÑ Ð¿Ñ€Ð¸ Ð¿ÐµÑ€ÐµÐ·Ð°Ð³Ñ€ÑƒÐ·ÐºÐµ Ð¸Ð½Ñ‚ÐµÐ³Ñ€Ð°Ñ†Ð¸Ð¸)."""
         while True:
             manager = self._get_manager()
             if manager is not self._manager:
@@ -142,7 +142,7 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
     def available(self) -> bool:
         return self._manager is not None and self._manager.connected
 
-    # --- óïðàâëåíèå ---
+    # --- ÑƒÐ¿Ñ€Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ ---
 
     async def async_select_option(self, option: str) -> None:
         if self._manager is None:
