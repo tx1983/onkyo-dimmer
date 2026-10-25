@@ -75,7 +75,7 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
         return None
 
     async def _watch(self) -> None:
-        """Следим за менеджером (он пересоздаётся при перезагрузке интеграции)."""
+        was_available = None
         while True:
             manager = self._get_manager()
             if manager is not self._manager:
@@ -83,9 +83,15 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
                 self._manager = manager
                 if manager is not None:
                     self._register()
-                    if manager.connected:
-                        await self._query()
+                was_available = None
+
+            now = self.available
+            if now != was_available:
+                was_available = now
+                if now:
+                    await self._query()
                 self.async_write_ha_state()
+
             await asyncio.sleep(WATCH_INTERVAL)
 
     def _register(self) -> None:
