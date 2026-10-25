@@ -1,0 +1,12 @@
+{
+  "domain": "onkyo_dimmer",
+  "name": "Onkyo Dimmer",
+  "version": "0.3.0",
+  "codeowners": ["@tx1983"],
+  "documentation": "https://github.com/tx1983/onkyo-dimmer",
+  "issue_tracker": "https://github.com/tx1983/onkyo-dimmer/issues",
+  "dependencies": ["onkyo"],
+  "after_dependencies": ["onkyo"],
+  "requirements": [],
+  "iot_class": "local_push"
+}
