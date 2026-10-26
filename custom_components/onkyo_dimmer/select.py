@@ -75,7 +75,7 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
         return None
 
     async def _watch(self) -> None:
-        was_available = None
+        was_available = False
         while True:
             manager = self._get_manager()
             if manager is not self._manager:
@@ -83,14 +83,14 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
                 self._manager = manager
                 if manager is not None:
                     self._register()
-                was_available = None
+                was_available = False
 
             now = self.available
-            if now != was_available:
-                was_available = now
-                if now:
-                    await self._query()
-                self.async_write_ha_state()
+            self.async_write_ha_state()
+
+            if now and not was_available:
+                await self._query()
+            was_available = now
 
             await asyncio.sleep(WATCH_INTERVAL)
 
