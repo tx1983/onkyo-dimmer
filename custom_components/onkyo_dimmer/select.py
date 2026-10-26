@@ -1,14 +1,17 @@
 import asyncio
 import logging
+from datetime import timedelta
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import event as event_helper
 from homeassistant.helpers.restore_state import RestoreEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 ONKYO_DOMAIN = "onkyo"
-WATCH_INTERVAL = 10
+WATCH_INTERVAL = timedelta(seconds=10)
+WRITE_TIMEOUT = 5
 
 # Проверено на VSX-LX505: 00-03 поддерживаются, 08 даёт N/A
 CODE_TO_NAME = {
@@ -50,19 +53,21 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
         self._attr_unique_id = "onkyo_dimmer_display"
         self._attr_current_option = None
         self._manager = None
-        self._task = None
+        self._was_available = False
 
     async def async_added_to_hass(self) -> None:
         last = await self.async_get_last_state()
         if last and last.state in self._attr_options:
             self._attr_current_option = last.state
-        self._task = self.hass.async_create_background_task(
-            self._watch(), name="onkyo_dimmer_watch"
+        unsub = event_helper.async_track_time_interval(
+            self.hass, self._tick, WATCH_INTERVAL
         )
+        self.async_on_remove(unsub)
+        # Первый тик откладываем: внутри async_added_to_hass сущность ещё
+        # в состоянии ADDING и async_write_ha_state() будет молча выброшен
+        event_helper.async_call_later(self.hass, 0, self._tick)
 
     async def async_will_remove_from_hass(self) -> None:
-        if self._task:
-            self._task.cancel()
         self._unregister()
 
     # --- связь с менеджером родной интеграции ---
@@ -70,32 +75,40 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
     def _get_manager(self):
         for entry in self.hass.config_entries.async_entries(ONKYO_DOMAIN):
             data = getattr(entry, "runtime_data", None)
-            if data is not None and getattr(data, "manager", None) is not None:
-                return data.manager
+            if data is None:
+                continue
+            # runtime_data может быть OnkyoData(manager=...) или самим ReceiverManager
+            manager = getattr(data, "manager", data)
+            if hasattr(manager, "callbacks") and hasattr(manager, "connected"):
+                return manager
         return None
 
-    async def _watch(self) -> None:
-        was_available = False
-        while True:
+    async def _tick(self, _now=None) -> None:
+        try:
             manager = self._get_manager()
             if manager is not self._manager:
                 self._unregister()
-                self._manager = manager
                 if manager is not None:
-                    self._register()
-                was_available = False
+                    self._register(manager)
+                self._manager = manager
+                _LOGGER.debug(
+                    "manager changed: %r connected=%r",
+                    manager,
+                    getattr(manager, "connected", None),
+                )
+                self._was_available = False
 
             now = self.available
             self.async_write_ha_state()
 
-            if now and not was_available:
+            if now and not self._was_available:
                 await self._query()
-            was_available = now
+            self._was_available = now
+        except Exception:
+            _LOGGER.exception("onkyo dimmer tick failed")
 
-            await asyncio.sleep(WATCH_INTERVAL)
-
-    def _register(self) -> None:
-        cbs = self._manager.callbacks
+    def _register(self, manager) -> None:
+        cbs = manager.callbacks
         cbs.connect.append(self._on_connect)
         cbs.disconnect.append(self._on_disconnect)
         cbs.update.append(self._on_update)
@@ -119,15 +132,18 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
         if self._manager is None:
             return
         try:
-            await self._manager.write(DimInstruction(b"QSTN"))
+            async with asyncio.timeout(WRITE_TIMEOUT):
+                await self._manager.write(DimInstruction(b"QSTN"))
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Dimmer query failed: %r", err)
 
     async def _on_connect(self, _reconnect: bool) -> None:
+        _LOGGER.debug("receiver connected")
         await self._query()
         self.async_write_ha_state()
 
     async def _on_disconnect(self) -> None:
+        _LOGGER.debug("receiver disconnected")
         self.async_write_ha_state()
 
     async def _on_update(self, message) -> None:
@@ -155,7 +171,8 @@ class OnkyoDimmerSelect(SelectEntity, RestoreEntity):
             raise HomeAssistantError("Onkyo integration is not loaded")
         code = NAME_TO_CODE[option]
         try:
-            await self._manager.write(DimInstruction(code.encode()))
+            async with asyncio.timeout(WRITE_TIMEOUT):
+                await self._manager.write(DimInstruction(code.encode()))
         except Exception as err:  # noqa: BLE001
             _LOGGER.exception("Failed to send DIM%s", code)
             raise HomeAssistantError(f"Failed to set dimmer: {err!r}") from err
