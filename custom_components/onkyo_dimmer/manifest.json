@@ -1,7 +1,7 @@
 {
   "domain": "onkyo_dimmer",
   "name": "Onkyo Dimmer",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "codeowners": ["@tx1983"],
   "documentation": "https://github.com/tx1983/onkyo-dimmer",
   "issue_tracker": "https://github.com/tx1983/onkyo-dimmer/issues",
