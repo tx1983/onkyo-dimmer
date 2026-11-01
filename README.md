@@ -117,6 +117,11 @@ logger:
 This project is not affiliated with Onkyo, Pioneer, Integra or Home Assistant.
 Use at your own risk.
 
+## Support the project
+
+If this integration saves you time, you can
+[buy me a coffee](https://pay.cloudtips.ru/p/a039d481).
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
